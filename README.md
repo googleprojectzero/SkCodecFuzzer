@@ -26,7 +26,7 @@ In order to build the harness on a x86-64 Linux host, you will need:
 
 Let's put all of the dependencies into a common `deps` directory (e.g. `/home/j00ru/SkCodecFuzzer/deps`), and start with cross-compiling Capstone:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/deps/capstone-4.0.1$ CAPSTONE_BUILD_CORE_ONLY=yes ./make.sh cross-android64
   CC      utils.o
   CC      cs.o
@@ -43,7 +43,7 @@ j00ru@j00ru:~/SkCodecFuzz/deps/capstone-4.0.1$
 
 With this, we are ready to compile the harness. Let's update the five paths at the top of `Makefile` to point to the corresponding dependency paths, and run `make`:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ make
 /home/j00ru/SkCodecFuzz/deps/ndk/android-ndk-r20b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++ -c -o loader.o loader.cc -D_LIBCPP_ABI_NAMESPACE=__1 -I/home/j00ru/SkCodecFuzz/deps/skia/include/core -I/home/j00ru/SkCodecFuzz/deps/skia/include/codec -I/home/j00ru/SkCodecFuzz/deps/skia/include/config -I/home/j00ru/SkCodecFuzz/deps/skia/include/config/android -I/home/j00ru/SkCodecFuzz/deps/capstone-4.0.1/include -I/home/j00ru/SkCodecFuzz/deps/libbacktrace/include
 /home/j00ru/SkCodecFuzz/deps/ndk/android-ndk-r20b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++ -c -o common.o common.cc -D_LIBCPP_ABI_NAMESPACE=__1 -I/home/j00ru/SkCodecFuzz/deps/skia/include/core -I/home/j00ru/SkCodecFuzz/deps/skia/include/codec -I/home/j00ru/SkCodecFuzz/deps/skia/include/config -I/home/j00ru/SkCodecFuzz/deps/skia/include/config/android -I/home/j00ru/SkCodecFuzz/deps/capstone-4.0.1/include -I/home/j00ru/SkCodecFuzz/deps/libbacktrace/include
@@ -55,7 +55,7 @@ j00ru@j00ru:~/SkCodecFuzz/source$
 
 We should now find the following `loader` file in the current directory:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ file loader
 loader: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /home/j00ru/SkCodecFuzz/deps/android/system/bin/linker64, with debug_info, not stripped
 j00ru@j00ru:~/SkCodecFuzz/source$
@@ -63,7 +63,7 @@ j00ru@j00ru:~/SkCodecFuzz/source$
 
 To run it locally, make sure you have `qemu-aarch64` installed, update the two paths at the top of the `run.sh` script accordingly, and start it:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ ./run.sh
 Error: missing required --input (-i) option
 
@@ -92,7 +92,7 @@ The problem is caused by a new version of `/lib64/libclang_rt.ubsan_standalone-a
 
 To compile the loader for an actual Android device, just remove the `-Wl,--dynamic-linker=$(ANDROID_PATH)/bin/linker64` part from `LDFLAGS` in `Makefile`, and run `make clean && make` again. The harness can be then run natively on a device with USB debugging enabled:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ adb push loader /data/local/tmp
 loader: 1 file pushed, 0 skipped. 147.0 MB/s (4380512 bytes in 0.028s)
 j00ru@j00ru:~/SkCodecFuzz/source$ adb shell /data/local/tmp/loader
@@ -108,7 +108,7 @@ j00ru@j00ru:~/SkCodecFuzz/source$
 
 The standard way to run the harness is with the `LIBC_HOOKS_ENABLE=1` environment variable (to enable libdislocator), the `-i` flag to specify the input file, and optionally the `-o` flag to verify that the bitmap is decoded correctly. Images in any format supported by the given build of Skia can be passed as input. For example, let's test a random valid JPEG file:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ LIBC_HOOKS_ENABLE=1 ./run.sh -i test.jpg -o test.raw
 [+] Detected image characteristics:
 [+] Dimensions:      72 x 48
@@ -122,14 +122,14 @@ j00ru@j00ru:~/SkCodecFuzz/source$
 
 As an alternative to `LIBC_HOOKS_ENABLE=1`, the `-d` flag can be passed to force the usage of the default system allocator, which results in a more Android-like runtime environment, but may conceal a subset of bugs. I have used this option rarely in my research, but it may come in handy in certain situations.
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ ./run.sh -d -i test.jpg -o test.raw
 [output same as above]
 ```
 
 Now, let's move on to a more interesting scenario -- a corrupted Qmage input file:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ LIBC_HOOKS_ENABLE=1 ./run.sh -i signal_sigsegv_4003f4fca8_6549_e9bf68c239eb55c8654336e2f9f25111.qmg 
 [+] Detected image characteristics:
 [+] Dimensions:      318 x 318
@@ -179,7 +179,7 @@ j00ru@j00ru:~/SkCodecFuzz/source$
 
 In the above report, we receive detailed information about the crash -- the exact location in code, the full stack trace, code disassembly and CPU context. Based on it, we can determine that the exception was caused by an attempt to write (`str` instruction) a 32-bit value `0x000000ff` (in register `w13`) to an invalid address `0x4089666008` (register `x5`). We can expect that this manifests a heap-based buffer overflow. To confirm this, we can use the `-l` flag to log all heap activity:
 
-```bash
+```
 j00ru@j00ru:~/SkCodecFuzz/source$ LIBC_HOOKS_ENABLE=1 ./run.sh -l -i signal_sigsegv_4003f4fca8_6549_e9bf68c239eb55c8654336e2f9f25111.qmg
 [...]
 [+] Detected image characteristics:
