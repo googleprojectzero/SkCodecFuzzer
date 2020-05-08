@@ -493,11 +493,7 @@ static void GeneralSignalHandler(int signo, siginfo_t *info, void *extra) {
   // If requested by the user, open the output log file.
   int output_log_fd = -1;
   if (!config::log_path.empty() && asan_crash) {
-    char buffer[MAX_PATH];
-    snprintf(buffer, sizeof(buffer),
-             "%s.%d", config::log_path.c_str(), getpid());
-
-    output_log_fd = open(buffer, O_CREAT | O_WRONLY, 0755);
+    output_log_fd = open(config::log_path.c_str(), O_CREAT | O_WRONLY, 0755);
   }
 
   const bool valid_pc = IsCodeAddressValid(orig_pc);
@@ -746,7 +742,7 @@ static void ParseEnvironmentConfig() {
     if (it.first == "exitcode") {
       config::exitcode = atoi(it.second.c_str());
     } else if (it.first == "log_path") {
-      config::log_path = it.second;
+      config::log_path = it.second + "." + std::to_string(getpid());
     }
   }
 }
