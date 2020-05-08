@@ -127,7 +127,7 @@ j00ru@j00ru:~/SkCodecFuzz/source$ ./run.sh -d -i test.jpg -o test.raw
 [output same as above]
 ```
 
-Now, let's move on to a more interesting scenario -- a corrupted Qmage input file:
+Now, let's move on to a more interesting scenario - a corrupted Qmage input file:
 
 ```
 j00ru@j00ru:~/SkCodecFuzz/source$ LIBC_HOOKS_ENABLE=1 ./run.sh -i signal_sigsegv_4003f4fca8_6549_e9bf68c239eb55c8654336e2f9f25111.qmg 
@@ -177,7 +177,7 @@ ASAN:SIGSEGV
 j00ru@j00ru:~/SkCodecFuzz/source$
 ```
 
-In the above report, we receive detailed information about the crash -- the exact location in code, the full stack trace, code disassembly and CPU context. Based on it, we can determine that the exception was caused by an attempt to write (`str` instruction) a 32-bit value `0x000000ff` (in register `w13`) to an invalid address `0x4089666008` (register `x5`). We can expect that this manifests a heap-based buffer overflow. To confirm this, we can use the `-l` flag to log all heap activity:
+In the above report, we receive detailed information about the crash - the exact location in code, the full stack trace, code disassembly and CPU context. Based on it, we can determine that the exception was caused by an attempt to write (`str` instruction) a 32-bit value `0x000000ff` (in register `w13`) to an invalid address `0x4089666008` (register `x5`). We can expect that this manifests a heap-based buffer overflow. To confirm this, we can use the `-l` flag to log all heap activity:
 
 ```
 j00ru@j00ru:~/SkCodecFuzz/source$ LIBC_HOOKS_ENABLE=1 ./run.sh -l -i signal_sigsegv_4003f4fca8_6549_e9bf68c239eb55c8654336e2f9f25111.qmg
@@ -203,7 +203,7 @@ It is also worth noting that the `exitcode` and `log_path` options in the `ASAN_
 
 ### Note on running on Android devices
 
-For all intents and purposes, the harness should behave identically\* when run in qemu and on a real device. The asterisk here is for one explicit difference -- libdislocator memory alignment. The qemu emulator doesn't seem to enforce strict memory alignment, so e.g. if an allocation of size 7 is requested, the hooked `malloc` will return an address ending with `0xff9`, which will work just fine with the rest of the code. On the other hand, if an instruction performing an atomic access (e.g. `LDXR`) is executed against such an address on a Samsung phone, an unwanted `SIGBUS` exception will be thrown. In order to mitigate this, the loader automatically detects if it's running on Android, and if that's the case, all allocations are 8-byte aligned. This difference in behavior is not significant, but may mask some small out-of-bounds accesses (1-7 bytes outside the heap chunk) that would normally be detected under qemu.
+For all intents and purposes, the harness should behave identically\* when run in qemu and on a real device. The asterisk here is for one explicit difference - libdislocator memory alignment. The qemu emulator doesn't seem to enforce strict memory alignment, so e.g. if an allocation of size 7 is requested, the hooked `malloc` will return an address ending with `0xff9`, which will work just fine with the rest of the code. On the other hand, if an instruction performing an atomic access (e.g. `LDXR`) is executed against such an address on a Samsung phone, an unwanted `SIGBUS` exception will be thrown. In order to mitigate this, the loader automatically detects if it's running on Android, and if that's the case, all allocations are 8-byte aligned. This difference in behavior is not significant, but may mask some small out-of-bounds accesses (1-7 bytes outside the heap chunk) that would normally be detected under qemu.
 
 ## Sample Qmage files
 
