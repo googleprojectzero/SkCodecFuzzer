@@ -4,7 +4,7 @@ SkCodecFuzzer is a small utility for testing the security and reliability of C/C
 
 The loader in this repository was used by Google Project Zero to run Qmage fuzzing at scale in January 2020, resulting in the uncovering of 5218 unique crashes, including hundreds of memory corruption issues (buffer overflows, use-after-free's etc.). They were subsequently reported to Samsung on January 28 as [issue #2002](https://bugs.chromium.org/p/project-zero/issues/detail?id=2002) in the PZ bug tracker, and fixed by the vendor in May 2020. For additional context and more information about `.qmg` files, we recommend to refer to that tracker entry as it aims to explain our effort in great detail. The purpose of this harness is to link to Android's precompiled ARM(64) Skia libraries (`libhwui.so` or `libskia.so` on older versions) and use its `SkCodec` class to load an input file, in the same way that `BitmapFactory::doDecode` [decodes](https://android.googlesource.com/platform/frameworks/base/+/master/core/jni/android/graphics/BitmapFactory.cpp#184) images on real Android devices. It can run on both physical phones with ARM CPUs and in an emulated qemu-aarch64 environment on any host CPU of choice, enabling effective parallelized fuzzing.
 
-One of the Qmage vulnerabilities was used to demonstrate successful zero-click exploitation of a Samsung Galaxy Note 10+ phone running Android 10 via MMS: [see video](https://www.youtube.com/watch?v=nke8Z3G4jnc).
+One of the Qmage vulnerabilities was used to demonstrate successful zero-click exploitation of a Samsung Galaxy Note 10+ phone running Android 10 via MMS: [see video](https://www.youtube.com/watch?v=nke8Z3G4jnc). The exploit source code is available for reference [here](mms_exploit).
 
 ## Features
 
