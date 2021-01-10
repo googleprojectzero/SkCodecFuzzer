@@ -150,17 +150,20 @@ static ssize_t UnwindBacktrace(void *unwind_context);
 static void *my_malloc_hook(size_t, const void *);
 static void *my_realloc_hook(void *, size_t, const void *);
 static void my_free_hook(void *, const void *);
+static void *my_memalign_hook(size_t, size_t, const void *);
 
 static void InitMallocHooks() {
   __malloc_hook = my_malloc_hook;
   __realloc_hook = my_realloc_hook;
   __free_hook = my_free_hook;
+  __memalign_hook = my_memalign_hook;
 }
 
 static void DestroyMallocHooks() {
   __malloc_hook = NULL;
   __realloc_hook = NULL;
   __free_hook = NULL;
+  __memalign_hook = NULL;
 }
 
 static void PrintMallocBacktrace(const void *caller) {
@@ -280,6 +283,34 @@ static void my_free_hook(void *ptr, const void *caller) {
 
     InitMallocHooks();
   }
+}
+
+static void *
+my_memalign_hook(size_t alignment, size_t size, const void *caller) {
+  size_t real_alignment = alignment;
+  if (config::android_host) {
+    real_alignment = std::max(real_alignment, static_cast<size_t>(8));
+  }
+
+  size_t aligned_size = ((size + (real_alignment - 1)) & ~(real_alignment - 1));
+
+  if (aligned_size < size) {
+    aligned_size = size;
+  }
+
+  void *ret = afl_malloc(aligned_size);
+
+  if (config::log_malloc) {
+    DestroyMallocHooks();
+
+    fprintf(stderr, "memalign(%2zu, %4zu) = {%p .. %p}",
+            alignment, size, ret, (void *)((size_t)ret + aligned_size));
+    PrintMallocBacktrace(caller);
+
+    InitMallocHooks();
+  }
+
+  return ret;
 }
 
 void SetSignalHandler(void (*handler)(int, siginfo_t *, void *)) {
